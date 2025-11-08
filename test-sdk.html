@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lighthouse SDK Test</title>
+</head>
+<body>
+    <h1>Lighthouse SDK Test</h1>
+    <button onclick="testOpenAI()">Test OpenAI Call</button>
+    <button onclick="testCustomFetch()">Test Custom Fetch</button>
+    <div id="result"></div>
+    <script type="module">
+        // Import the SDK (you'll need to build it first)
+        // For now, we'll use a simple inline version for testing
+        
+        class Lighthouse {
+            constructor(config) {
+                this.apiKey = config.apiKey;
+                this.endpoint = config.endpoint || 'http://localhost:8080/api/sdk/traces';
+                this.enabled = config.enabled !== false;
+            }
+            
+            async trackFetch(url, options, metadata) {
+                const startTime = Date.now();
+                const prompt = metadata?.prompt || (options?.body ? JSON.parse(options.body).prompt : '');
+                const provider = metadata?.provider || 'openai';
+                
+                try {
+                    const response = await fetch(url, options);
+                    const responseText = await response.clone().text();
+                    const latencyMs = Date.now() - startTime;
+                    const tokensUsed = Math.ceil((prompt.length + responseText.length) / 4);
+                    const costUsd = (tokensUsed / 1000) * 0.002; // OpenAI rate
+                    
+                    const trace = {
+                        prompt: prompt.substring(0, 10000),
+                        response: responseText.substring(0, 50000),
+                        tokensUsed,
+                        costUsd,
+                        latencyMs,
+                        provider,
+                        metadata: {
+                            url,
+                            method: options?.method || 'GET',
+                            statusCode: response.status,
+                            ...metadata
+                        }
+                    };
+                    
+                    // Send trace (async, non-blocking)
+                    this.sendTrace(trace).catch(err => console.warn('Lighthouse error:', err));
+                    
+                    return response;
+                } catch (error) {
+                    const trace = {
+                        prompt: prompt.substring(0, 10000),
+                        response: `Error: ${error.message}`,
+                        tokensUsed: 0,
+                        costUsd: 0,
+                        latencyMs: Date.now() - startTime,
+                        provider: provider || 'unknown',
+                        metadata: { error: true, errorMessage: error.message }
+                    };
+                    this.sendTrace(trace).catch(err => console.warn('Lighthouse error:', err));
+                    throw error;
+                }
+            }
+            
+            async sendTrace(trace) {
+                if (!this.enabled) return;
+                await fetch(this.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': this.apiKey
+                    },
+                    body: JSON.stringify(trace)
+                });
+            }
+        }
+        
+        // Initialize Lighthouse
+        const lighthouse = new Lighthouse({
+            apiKey: 'lh_83513bd689b44ab9b53b679d689b50a9',
+            endpoint: 'http://localhost:8080/api/sdk/traces'
+        });
+        
+        // Make it global for the buttons
+        window.lighthouse = lighthouse;
+        
+        async function testOpenAI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            try {
+                // Simulate an OpenAI API call
+                const response = await lighthouse.trackFetch(
+                    'https://api.openai.com/v1/chat/completions',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer YOUR_OPENAI_KEY' // Replace with real key
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-3.5-turbo',
+                            messages: [{ role: 'user', content: 'Say hello!' }]
+                        })
+                    },
+                    {
+                        prompt: 'Say hello!',
+                        provider: 'openai',
+                        model: 'gpt-3.5-turbo'
+                    }
+                );
+                const data = await response.json();
+                resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre><p>✅ Trace sent to Lighthouse!</p>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<p>❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testCustomFetch() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing custom fetch...';
+            // Test with a mock API call
+            const mockResponse = await lighthouse.trackFetch(
+                'https://jsonplaceholder.typicode.com/posts/1',
+                { method: 'GET' },
+                {
+                    prompt: 'Get post data',
+                    provider: 'custom'
+                }
+            );
+            const data = await mockResponse.json();
+            resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre><p>✅ Trace sent to Lighthouse!</p>`;
+        }
+        
+        window.testOpenAI = testOpenAI;
+        window.testCustomFetch = testCustomFetch;
+    </script>
+</body>
+</html>
+
