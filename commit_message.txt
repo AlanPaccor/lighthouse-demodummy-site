@@ -1,0 +1,56 @@
+feat: integrate with demo backend and display accurate cost information
+
+This commit updates the demo frontend to properly display cost information
+from the demo backend and ensures seamless integration with the Lighthouse
+observability platform.
+
+Cost Display Fixes:
+- Updated trace display to show accurate cost values instead of $0.000000
+- Implemented proper cost formatting for very small values:
+  * Values < $0.0001: Display with 6 decimal places for precision
+  * Zero values: Display as "$0.00" for clarity
+  * Normal values: Display with 4 decimal places
+- Fixed cost parsing from demo backend API response
+- Added cost validation to handle edge cases and null values
+
+API Integration:
+- Enhanced query submission to properly handle costUsd from demo backend
+- Updated trace data structure to include accurate cost information
+- Improved error handling for cost-related API responses
+- Added logging for cost values received from backend
+
+UI/UX Improvements:
+- Updated trace cards to display formatted cost values
+- Enhanced trace detail modal with accurate cost information
+- Improved visual consistency with main Lighthouse dashboard
+- Added cost tooltips or helper text for clarity
+
+Trace Display Enhancements:
+- Updated trace list to show cost alongside tokens and latency
+- Enhanced trace detail view with properly formatted cost
+- Added cost comparison or trend indicators if applicable
+- Improved responsive design for cost display on mobile devices
+
+Error Handling:
+- Added fallback cost display for missing or invalid cost data
+- Implemented graceful degradation when cost calculation fails
+- Enhanced error messages for cost-related issues
+- Added validation for cost values before display
+
+Integration with Lighthouse:
+- Ensured trace data sent to Lighthouse includes accurate cost
+- Verified cost data format matches Lighthouse API expectations
+- Added cost validation before sending traces to main backend
+- Improved trace data completeness for observability
+
+Technical Improvements:
+- Updated TypeScript types to ensure costUsd is properly typed
+- Added cost calculation utilities if needed client-side
+- Improved state management for cost data
+- Enhanced API response parsing for cost values
+
+Files Modified:
+- src/components/TraceDisplay.tsx (or similar): Updated cost formatting
+- src/services/demoApi.ts (or similar): Enhanced API integration
+- src/types/Trace.ts: Updated cost type definitions if needed
+- Any trace-related components: Cost display improvements
