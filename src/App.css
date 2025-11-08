@@ -72,6 +72,13 @@
   color: #646cff;
 }
 
+.section-description {
+  color: #888;
+  font-size: 0.9em;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
 .prompt-input {
   width: 100%;
   padding: 0.8em;
@@ -286,4 +293,334 @@
   .info-box code {
     background: rgba(0, 0, 0, 0.08);
   }
+}
+
+.database-connection-selector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.database-connection-selector label {
+  font-weight: 500;
+  color: #646cff;
+}
+
+.db-select {
+  flex: 1;
+  padding: 0.6em 1em;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font-family: inherit;
+  font-size: 1em;
+}
+
+.db-select:focus {
+  outline: none;
+  border-color: #646cff;
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.1);
+}
+
+.refresh-button {
+  padding: 0.5em 1em;
+  background: rgba(100, 108, 255, 0.2);
+  border: 1px solid rgba(100, 108, 255, 0.3);
+  border-radius: 6px;
+  color: #646cff;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.25s;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: rgba(100, 108, 255, 0.3);
+  border-color: rgba(100, 108, 255, 0.5);
+}
+
+.refresh-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.prompt-examples {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+}
+
+.examples-label {
+  font-size: 0.85em;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+
+.example-button {
+  display: inline-block;
+  margin: 0.3rem 0.5rem 0.3rem 0;
+  padding: 0.4em 0.8em;
+  background: rgba(100, 108, 255, 0.1);
+  border: 1px solid rgba(100, 108, 255, 0.2);
+  border-radius: 4px;
+  color: #646cff;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: all 0.25s;
+}
+
+.example-button:hover {
+  background: rgba(100, 108, 255, 0.2);
+  border-color: rgba(100, 108, 255, 0.4);
+}
+
+.test-button.primary {
+  background-color: #646cff;
+  color: white;
+  font-weight: 600;
+}
+
+.test-button.primary:hover:not(:disabled) {
+  background-color: #535bf2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(100, 108, 255, 0.4);
+}
+
+.hallucination-results {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hallucination-results h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #646cff;
+}
+
+.confidence-score {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.score-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.score-badge.high {
+  background: rgba(76, 175, 80, 0.2);
+  border: 2px solid rgba(76, 175, 80, 0.4);
+}
+
+.score-badge.medium {
+  background: rgba(255, 152, 0, 0.2);
+  border: 2px solid rgba(255, 152, 0, 0.4);
+}
+
+.score-badge.low {
+  background: rgba(244, 67, 54, 0.2);
+  border: 2px solid rgba(244, 67, 54, 0.4);
+}
+
+.score-label {
+  font-size: 0.9em;
+  color: #888;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.score-value {
+  font-size: 2.5em;
+  font-weight: 700;
+}
+
+.score-badge.high .score-value {
+  color: #4caf50;
+}
+
+.score-badge.medium .score-value {
+  color: #ff9800;
+}
+
+.score-badge.low .score-value {
+  color: #f44336;
+}
+
+.claims-breakdown {
+  padding: 0.8rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.95em;
+}
+
+.hallucination-warning {
+  padding: 1rem;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 6px;
+  color: #f44336;
+  font-weight: 500;
+  text-align: center;
+}
+
+.database-context {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.database-context summary {
+  cursor: pointer;
+  padding: 0.5rem;
+  font-weight: 500;
+  color: #646cff;
+}
+
+.database-context summary:hover {
+  color: #535bf2;
+}
+
+.database-context pre {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.85em;
+  line-height: 1.5;
+}
+
+.ai-response {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.ai-response h4 {
+  margin-top: 0;
+  margin-bottom: 0.8rem;
+  color: #646cff;
+}
+
+.response-text {
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+@media (prefers-color-scheme: light) {
+  .database-connection-selector {
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  .db-select {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.2);
+    color: #213547;
+  }
+
+  .refresh-button {
+    background: rgba(100, 108, 255, 0.1);
+    border-color: rgba(100, 108, 255, 0.2);
+  }
+
+  .prompt-examples {
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  .example-button {
+    background: rgba(100, 108, 255, 0.1);
+    border-color: rgba(100, 108, 255, 0.2);
+  }
+
+  .hallucination-results {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .claims-breakdown {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .database-context,
+  .ai-response {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .database-context pre,
+  .response-text {
+    background: rgba(0, 0, 0, 0.08);
+  }
+}
+
+.backend-status {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.status-indicator {
+  display: inline-block;
+  padding: 0.3em 0.8em;
+  border-radius: 4px;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.status-indicator.checking {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+}
+
+.status-indicator.online {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.status-indicator.offline {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.status-help {
+  margin-top: 0.8rem;
+  padding: 0.8rem;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 6px;
+  font-size: 0.9em;
+}
+
+.status-help p {
+  margin: 0.5rem 0;
+}
+
+.status-help ul {
+  margin: 0.5rem 0 0 1.5rem;
+  padding: 0;
+}
+
+.status-help li {
+  margin: 0.3rem 0;
 }
