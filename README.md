@@ -1,172 +1,259 @@
-# React + TypeScript + Vite
+# Lighthouse Mock SDK demoApi
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack demo application showcasing an AI-powered query system with database context integration and hallucination detection. This project consists of a React frontend and Spring Boot backend that work together to provide context-aware AI responses.
 
-## Lighthouse SDK Testing
+## 📋 Table of Contents
 
-This project includes test files for the Lighthouse SDK wrapper. You can test the SDK using three different methods:
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [Project Structure](#project-structure)
+- [Frontend Setup](#frontend-setup)
+- [Backend Setup](#backend-setup)
+- [Database Setup](#database-setup)
+- [How It Works Together](#how-it-works-together)
+- [API Endpoints](#api-endpoints)
+- [Configuration](#configuration)
+- [Running the Application](#running-the-application)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
 
-### Option 1: HTML Test File
+## 🎯 Overview
 
-Open `test-sdk.html` in your browser to test the SDK with a simple HTML interface. This file includes:
-- Test buttons for OpenAI calls and custom fetch requests
-- Inline Lighthouse SDK implementation
-- Visual feedback for test results
+This is a demo application that demonstrates:
 
-**Usage:**
-1. Make sure your Lighthouse backend is running on `http://localhost:8080`
-2. Open `test-sdk.html` in your browser
-3. Click the test buttons to send traces
+- **Frontend (React + TypeScript + Vite)**: A modern web interface for querying an AI system
+- **Backend (Spring Boot)**: A proxy service that connects to AI APIs (Gemini) with database context
+- **Database (PostgreSQL)**: Stores data that provides context for AI queries
+- **Main Lighthouse Backend**: Handles hallucination detection and trace storage
 
-### Option 2: Node.js Test Script
+The system allows users to query an AI model that has access to database context, enabling accurate responses based on actual data.
 
-Run the Node.js test script to test the SDK from the command line.
+## 🏗️ Architecture
 
-**Setup:**
+### System Flow
+
+```
+┌─────────────────┐
+│  React Frontend │  (Port 5174)
+│   (Port 5174)   │
+└────────┬────────┘
+         │
+         │ POST /api/demo/query
+         │ { prompt, databaseConnectionId }
+         ▼
+┌─────────────────┐
+│  Demo Backend   │  (Port 8081)
+│  Spring Boot    │
+└────────┬────────┘
+         │
+         ├─► Query PostgreSQL Database (Port 5432)
+         │   └─► Get relevant context from mock_data table
+         │
+         ├─► Build Enhanced Prompt with Database Context
+         │
+         ├─► Call Gemini AI API
+         │   └─► Get AI response with database context
+         │
+         └─► Send Trace to Main Lighthouse Backend (Port 8080)
+             └─► POST /api/traces/query-with-db
+                 └─► Hallucination Detection & Validation
+                     └─► Return confidence scores
+         │
+         ▼
+┌─────────────────┐
+│  Main Lighthouse│  (Port 8080)
+│     Backend     │
+└─────────────────┘
+```
+
+### Components
+
+1. **Frontend (React)**
+   - User interface for entering queries
+   - Database connection selector
+   - Real-time status monitoring
+   - Results display with hallucination detection
+   - Error handling and troubleshooting
+
+2. **Demo Backend (Spring Boot)**
+   - Receives queries from frontend
+   - Queries PostgreSQL database for context
+   - Calls Gemini AI API with enhanced prompts
+   - Sends traces to main Lighthouse backend
+   - Returns responses with hallucination detection results
+
+3. **PostgreSQL Database**
+   - Stores `mock_data` table with sample data
+   - Provides context for AI queries
+   - Accessible on port 5432
+
+4. **Main Lighthouse Backend**
+   - Receives traces from demo backend
+   - Performs hallucination detection
+   - Validates responses against database
+   - Stores traces and analytics
+
+## 📦 Prerequisites
+
+### Required Software
+
+- **Node.js** (v18 or higher)
+- **npm** or **yarn**
+- **Java** 17 or higher
+- **Maven** 3.6+
+- **PostgreSQL** 12+ (running on port 5432)
+- **Main Lighthouse Backend** (running on port 8080)
+
+### Required API Keys
+
+- **Gemini API Key**: Get from [Google AI Studio](https://makersuite.google.com/app/apikey)
+- **Lighthouse API Key**: `lh_83513bd689b44ab9b53b679d689b50a9` (demo key)
+
+## 📁 Project Structure
+
+```
+my-react-app/
+├── src/                          # Frontend source code
+│   ├── App.tsx                   # Main React component
+│   ├── App.css                   # Styles
+│   ├── main.tsx                  # React entry point
+│   └── index.css                 # Global styles
+├── public/                       # Static assets
+├── vite.config.ts               # Vite configuration with proxy
+├── package.json                 # Frontend dependencies
+├── tsconfig.json                # TypeScript configuration
+│
+└── demo-backend/                 # Backend project (separate)
+    ├── src/main/java/
+    │   └── com/example/lighthousedummydemo/
+    │       ├── controller/       # REST controllers
+    │       ├── service/           # Business logic
+    │       │   ├── AIService.java
+    │       ├── DatabaseService.java
+    │       └── LighthouseService.java
+    │       └── model/            # Data models
+    │       └── LighthouseDummyDemoApplication.java
+    ├── src/main/resources/
+    │   └── application.properties
+    └── pom.xml                   # Maven dependencies
+```
+
+## 🎨 Frontend Setup
+
+### Installation
+
 ```bash
-npm install node-fetch
+# Install dependencies
+npm install
 ```
 
-**Usage:**
+### Configuration
+
+The frontend is configured in `vite.config.ts`:
+
+```typescript
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5174,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8081',  // Proxies to demo backend
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
+})
+```
+
+**Key Features:**
+- **Vite Dev Server**: Runs on port 5174
+- **API Proxy**: All `/api/*` requests are proxied to `http://localhost:8081`
+- **Hot Module Replacement**: Fast development with instant updates
+
+### Frontend Components
+
+#### Main App Component (`App.tsx`)
+
+The main component includes:
+
+1. **Lighthouse SDK Class**: Client-side SDK for tracking
+   ```typescript
+   class Lighthouse {
+     apiKey: string;
+     endpoint: string;
+     baseUrl: string;
+     
+     async trackFetch(url, options, metadata)
+     async sendTrace(trace)
+     async queryWithDatabase(request)
+     async getDatabaseConnections()
+   }
+   ```
+
+2. **State Management**:
+   - `demoPrompt`: User's query text
+   - `selectedConnectionId`: Selected database connection
+   - `databaseConnections`: Available database connections
+   - `loading`: Loading state
+   - `result`: Query results with hallucination detection
+   - `error`: Error messages
+   - `backendStatus`: Main Lighthouse backend status
+   - `demoBackendStatus`: Demo backend status
+
+3. **Key Functions**:
+   - `testDemoBackend()`: Sends query to demo backend
+   - `checkDemoBackendStatus()`: Health check for demo backend
+   - `loadDatabaseConnections()`: Fetches available database connections
+
+#### UI Features
+
+- **Enterprise AI Query Interface**: Main query section
+- **Database Connection Selector**: Dropdown for selecting database
+- **Example Queries**: Quick buttons for common queries
+- **Real-time Status**: Shows backend connection status
+- **Results Display**: Shows AI response, trace data, and hallucination detection
+- **Error Detection**: Automatically detects database connection errors
+
+### Running the Frontend
+
 ```bash
-node test-sdk.js
+# Development mode
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
 ```
 
-### Option 3: cURL Test
+The frontend will be available at `http://localhost:5174`
 
-Test the SDK endpoint directly using curl.
+## ⚙️ Backend Setup
 
-**Usage:**
+### Installation
+
+The backend is a separate Spring Boot project. Navigate to the backend directory:
+
 ```bash
-chmod +x test-curl.sh
-./test-curl.sh
+cd demo-backend  # or wherever your Spring Boot project is
 ```
 
-Or run the curl command directly:
-```bash
-curl -X POST http://localhost:8080/api/sdk/traces \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: lh_83513bd689b44ab9b53b679d689b50a9" \
-  -d '{
-    "prompt": "Hello, this is a test!",
-    "response": "This is a test response from the SDK",
-    "tokensUsed": 50,
-    "costUsd": 0.0001,
-    "latencyMs": 150,
-    "provider": "test"
-  }'
-```
+### Maven Dependencies
 
-### What to Look For
-
-After running any test:
-1. Check your dashboard at `http://localhost:5173`
-2. Select "Test1" project
-3. Verify the trace appears in the dashboard
-4. Check that stats update (cost, requests, latency)
-5. Confirm the trace shows in the Query History list
-6. Verify API key authentication is working
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-
-
-# Demo Backend Database Integration Guide
-
-## Problem
-The demo backend is receiving `databaseConnectionId` but not actually querying the database to get context for the AI prompt.
-
-## Solution
-The demo backend needs to:
-1. Connect to the database using the provided connection details
-2. Query the database based on the user's prompt
-3. Get relevant context/data from the database
-4. Include that context in the AI prompt
-5. Call the AI API with the enhanced prompt
-6. Send the trace to the main Lighthouse backend for hallucination detection
-
-## Database Connection Details
-Based on your IntelliJ data source configuration:
-- **Host**: localhost
-- **Port**: 5432
-- **Database**: mock_data_db
-- **User**: postgres
-- **Driver**: org.postgresql.Driver
-- **JDBC URL**: jdbc:postgresql://localhost:5432/mock_data_db
-
-## Updated Demo Backend Code
-
-### 1. Add Database Dependencies to `pom.xml`
+Ensure `pom.xml` includes:
 
 ```xml
+<dependencies>
+    <!-- Spring Boot Web -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    
 <!-- PostgreSQL Driver -->
 <dependency>
     <groupId>org.postgresql</groupId>
@@ -179,401 +266,663 @@ Based on your IntelliJ data source configuration:
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-jdbc</artifactId>
 </dependency>
+    
+    <!-- Gson for JSON -->
+    <dependency>
+        <groupId>com.google.code.gson</groupId>
+        <artifactId>gson</artifactId>
+        <version>2.10.1</version>
+    </dependency>
+</dependencies>
 ```
 
-### 2. Update `application.properties`
+### Backend Components
+
+#### 1. DemoBackendController
+
+**Location**: `com.example.lighthousedummydemo.controller.DemoBackendController`
+
+**Endpoints**:
+- `POST /api/demo/query`: Main query endpoint
+- `GET /api/demo/health`: Health check endpoint
+
+**Request Body**:
+```json
+{
+  "prompt": "What hospitals are in the database?",
+  "databaseConnectionId": "mock-data-connection",
+  "model": "gpt-3.5-turbo",
+  "temperature": 0.7,
+  "maxTokens": 1000
+}
+```
+
+**Response**:
+```json
+{
+  "response": "AI response text...",
+  "success": true,
+  "tokensUsed": 127,
+  "costUsd": 0.0,
+  "latencyMs": 852,
+  "provider": "gemini",
+  "confidenceScore": 95.5,
+  "hallucinationsDetected": false,
+  "supportedClaims": 5,
+  "totalClaims": 5
+}
+```
+
+#### 2. AIService
+
+**Location**: `com.example.lighthousedummydemo.service.AIService`
+
+**Responsibilities**:
+- Calls Gemini AI API
+- Integrates database context into prompts
+- Calculates tokens and costs
+- Measures latency
+
+**Key Method**:
+```java
+public AIResponse callAI(String prompt, String databaseConnectionId)
+```
+
+**Process**:
+1. Gets database context from `DatabaseService`
+2. Builds enhanced prompt with database data
+3. Calls Gemini API
+4. Returns response with metrics
+
+#### 3. DatabaseService
+
+**Location**: `com.example.lighthousedummydemo.service.DatabaseService`
+
+**Responsibilities**:
+- Queries PostgreSQL database
+- Detects relevant tables based on prompt keywords
+- Retrieves sample data for context
+- Handles database errors gracefully
+
+**Key Method**:
+```java
+public String getDatabaseContext(String prompt, String databaseConnectionId)
+```
+
+**Table Detection Logic**:
+- "hospital" → queries tables with "hospital" in name
+- "employee", "people", "person", "name" → queries `mock_data` table
+- "department" → queries tables with "department" in name
+- Default → uses first available table (usually `mock_data`)
+
+#### 4. LighthouseService
+
+**Location**: `com.example.lighthousedummydemo.service.LighthouseService`
+
+**Responsibilities**:
+- Sends traces to main Lighthouse backend
+- Calls hallucination detection endpoint
+- Returns hallucination detection results
+
+**Key Method**:
+```java
+public Map<String, Object> sendTraceToLighthouse(
+    String prompt, 
+    AIResponse aiResponse, 
+    String databaseConnectionId
+)
+```
+
+### Configuration (`application.properties`)
 
 ```properties
 # Server Configuration
 server.port=8081
 
-# Main Lighthouse Backend URL
+# Main Lighthouse Backend
 lighthouse.api.url=http://localhost:8080/api/sdk/traces
+lighthouse.api.base-url=http://localhost:8080
 lighthouse.api.key=lh_83513bd689b44ab9b53b679d689b50a9
 
-# OpenAI Configuration
-openai.api.key=your_openai_key_here
-openai.api.model=gpt-3.5-turbo
-openai.api.temperature=0.7
-openai.api.max-tokens=1000
+# Gemini API
+gemini.api.key=${GEMINI_API_KEY}
+gemini.api.url=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent
 
 # Database Configuration
 spring.datasource.url=jdbc:postgresql://localhost:5432/mock_data_db
 spring.datasource.username=postgres
 spring.datasource.password=your_password_here
 spring.datasource.driver-class-name=org.postgresql.Driver
+
+# Connection Pool Settings
+spring.datasource.hikari.connection-timeout=30000
+spring.datasource.hikari.maximum-pool-size=5
+spring.datasource.hikari.minimum-idle=2
+spring.datasource.hikari.idle-timeout=300000
+spring.datasource.hikari.max-lifetime=600000
+
+# Logging
+logging.level.com.example.lighthousedummydemo=DEBUG
+logging.level.com.zaxxer.hikari=DEBUG
+logging.level.org.springframework.jdbc=DEBUG
 ```
 
-### 3. Create Database Service
+### Running the Backend
 
-```java
-package com.lighthouse.demo.service;
+```bash
+# Using Maven
+mvn spring-boot:run
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Service;
+# Or build and run JAR
+mvn clean package
+java -jar target/demo-backend-0.0.1-SNAPSHOT.jar
+```
 
-import java.util.List;
-import java.util.Map;
+The backend will be available at `http://localhost:8081`
 
-@Service
-public class DatabaseService {
-    
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-    
-    /**
-     * Query the database to get relevant context based on the user's prompt
-     */
-    public String getDatabaseContext(String prompt, String databaseConnectionId) {
-        try {
-            // Simple approach: Get table names and sample data
-            // You can make this more sophisticated based on your needs
-            
-            // Get all table names
-            String sql = "SELECT table_name FROM information_schema.tables " +
-                        "WHERE table_schema = 'public'";
-            List<String> tables = jdbcTemplate.queryForList(sql, String.class);
-            
-            if (tables.isEmpty()) {
-                return "No tables found in the database.";
-            }
-            
-            StringBuilder context = new StringBuilder();
-            context.append("Database: mock_data_db\n");
-            context.append("Tables: ").append(String.join(", ", tables)).append("\n\n");
-            
-            // Get sample data from each table (limit to avoid too much data)
-            for (String table : tables) {
-                try {
-                    String sampleSql = "SELECT * FROM " + table + " LIMIT 10";
-                    List<Map<String, Object>> rows = jdbcTemplate.queryForList(sampleSql);
-                    
-                    if (!rows.isEmpty()) {
-                        context.append("Sample data from ").append(table).append(":\n");
-                        for (Map<String, Object> row : rows) {
-                            context.append(row.toString()).append("\n");
-                        }
-                        context.append("\n");
-                    }
-                } catch (Exception e) {
-                    // Skip tables that can't be queried
-                    System.err.println("Error querying table " + table + ": " + e.getMessage());
-                }
-            }
-            
-            return context.toString();
-            
-        } catch (Exception e) {
-            System.err.println("Error getting database context: " + e.getMessage());
-            return "Error querying database: " + e.getMessage();
-        }
-    }
-    
-    /**
-     * Get more targeted context based on the prompt
-     */
-    public String getTargetedContext(String prompt) {
-        try {
-            // Try to extract keywords from the prompt
-            String lowerPrompt = prompt.toLowerCase();
-            
-            // If prompt mentions hospitals, query hospital-related tables
-            if (lowerPrompt.contains("hospital")) {
-                return queryTable("hospitals", 20);
-            }
-            
-            // If prompt mentions employees, query employee-related tables
-            if (lowerPrompt.contains("employee") || lowerPrompt.contains("staff")) {
-                return queryTable("employees", 20);
-            }
-            
-            // Default: get schema information
-            return getSchemaInfo();
-            
-        } catch (Exception e) {
-            System.err.println("Error getting targeted context: " + e.getMessage());
-            return getSchemaInfo();
-        }
-    }
-    
-    private String queryTable(String tableName, int limit) {
-        try {
-            String sql = "SELECT * FROM " + tableName + " LIMIT " + limit;
-            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
-            
-            if (rows.isEmpty()) {
-                return "No data found in table: " + tableName;
-            }
-            
-            StringBuilder context = new StringBuilder();
-            context.append("Data from ").append(tableName).append(":\n");
-            for (Map<String, Object> row : rows) {
-                context.append(row.toString()).append("\n");
-            }
-            return context.toString();
-            
-        } catch (Exception e) {
-            return "Error querying table " + tableName + ": " + e.getMessage();
-        }
-    }
-    
-    private String getSchemaInfo() {
-        try {
-            String sql = "SELECT table_name, column_name, data_type " +
-                        "FROM information_schema.columns " +
-                        "WHERE table_schema = 'public' " +
-                        "ORDER BY table_name, ordinal_position";
-            List<Map<String, Object>> columns = jdbcTemplate.queryForList(sql);
-            
-            StringBuilder context = new StringBuilder();
-            context.append("Database Schema:\n");
-            String currentTable = "";
-            for (Map<String, Object> col : columns) {
-                String table = (String) col.get("table_name");
-                if (!table.equals(currentTable)) {
-                    context.append("\nTable: ").append(table).append("\n");
-                    currentTable = table;
-                }
-                context.append("  - ").append(col.get("column_name"))
-                       .append(" (").append(col.get("data_type")).append(")\n");
-            }
-            return context.toString();
-        } catch (Exception e) {
-            return "Error getting schema info: " + e.getMessage();
-        }
-    }
+## 🗄️ Database Setup
+
+### PostgreSQL Installation
+
+1. **Install PostgreSQL** (if not already installed)
+   ```bash
+   # macOS
+   brew install postgresql@14
+   brew services start postgresql@14
+   
+   # Linux
+   sudo apt-get install postgresql postgresql-contrib
+   sudo systemctl start postgresql
+   ```
+
+2. **Create Database**
+   ```sql
+   CREATE DATABASE mock_data_db;
+   ```
+
+3. **Create User** (if needed)
+   ```sql
+   CREATE USER postgres WITH PASSWORD 'your_password';
+   GRANT ALL PRIVILEGES ON DATABASE mock_data_db TO postgres;
+   ```
+
+### Import Mock Data
+
+1. **Create Table**:
+   ```sql
+   \c mock_data_db
+   
+   CREATE TABLE mock_data (
+       id SERIAL PRIMARY KEY,
+       first_name VARCHAR(100),
+       last_name VARCHAR(100),
+       email VARCHAR(255),
+       gender VARCHAR(20),
+       ip_address VARCHAR(45),
+       hospital_name VARCHAR(255),
+       ssn VARCHAR(20),
+       job_title VARCHAR(255),
+       isbn VARCHAR(50),
+       color VARCHAR(50),
+       street_address VARCHAR(255),
+       city VARCHAR(100),
+       state VARCHAR(100),
+       postal_code VARCHAR(20),
+       country VARCHAR(100),
+       phone_number VARCHAR(20),
+       email_address VARCHAR(255),
+       bank_country_code VARCHAR(10),
+       stock_symbol VARCHAR(10),
+       department VARCHAR(100),
+       university VARCHAR(255),
+       language VARCHAR(50),
+       flight_number VARCHAR(20),
+       bank_name VARCHAR(255)
+   );
+   ```
+
+2. **Import CSV Data**:
+   ```sql
+   COPY mock_data FROM '/path/to/MOCK_DATA.csv' WITH CSV HEADER;
+   ```
+
+   Or use a CSV import tool in your PostgreSQL client.
+
+### Verify Database
+
+```sql
+-- Check table exists
+SELECT COUNT(*) FROM mock_data;
+
+-- View sample data
+SELECT * FROM mock_data LIMIT 5;
+```
+
+## 🔄 How It Works Together
+
+### Complete Request Flow
+
+1. **User enters query in frontend**
+   - Types question in textarea
+   - Selects database connection
+   - Clicks "Execute AI Query"
+
+2. **Frontend sends request**
+   ```typescript
+   POST /api/demo/query
+   {
+     prompt: "What hospitals are in the database?",
+     databaseConnectionId: "mock-data-connection",
+     model: "gpt-3.5-turbo",
+     temperature: 0.7,
+     maxTokens: 1000
+   }
+   ```
+   - Request goes through Vite proxy to `http://localhost:8081`
+
+3. **Demo Backend receives request**
+   - `DemoBackendController.executeQuery()` extracts prompt and databaseConnectionId
+   - Calls `AIService.callAI(prompt, databaseConnectionId)`
+
+4. **AIService processes request**
+   - Calls `DatabaseService.getDatabaseContext(prompt, databaseConnectionId)`
+   - `DatabaseService` queries PostgreSQL:
+     - Detects relevant table (e.g., `mock_data`)
+     - Retrieves sample rows (LIMIT 20)
+     - Returns formatted context string
+   - Builds enhanced prompt:
+     ```
+     You have access to a database with the following context:
+     
+     Data from table 'mock_data':
+     Columns: id, first_name, last_name, email, ...
+     
+     Row 1: {id=2, first_name=Alayne, last_name=Benkhe, ...}
+     Row 2: {id=3, first_name=Allin, last_name=King, ...}
+     ...
+     
+     User Question: What hospitals are in the database?
+     
+     Please answer based on the database context...
+     ```
+
+5. **AIService calls Gemini API**
+   - Sends enhanced prompt to Gemini
+   - Receives AI response with database context
+   - Calculates metrics (tokens, cost, latency)
+
+6. **LighthouseService sends trace**
+   - Calls main Lighthouse backend: `POST /api/traces/query-with-db`
+   - Sends prompt, response, and databaseConnectionId
+   - Main Lighthouse backend:
+     - Validates response against database
+     - Calculates confidence score
+     - Detects hallucinations
+     - Returns results
+
+7. **Demo Backend returns response**
+   ```json
+   {
+     "response": "Based on the database, the hospitals include...",
+     "success": true,
+     "tokensUsed": 3168,
+     "costUsd": 0.0,
+     "latencyMs": 979,
+     "provider": "gemini",
+     "confidenceScore": 95.5,
+     "hallucinationsDetected": false,
+     "supportedClaims": 5,
+     "totalClaims": 5
+   }
+   ```
+
+8. **Frontend displays results**
+   - Shows AI response
+   - Displays trace data (tokens, cost, latency)
+   - Shows hallucination detection results
+   - Displays confidence score
+
+## 📡 API Endpoints
+
+### Demo Backend Endpoints
+
+#### POST `/api/demo/query`
+
+Main query endpoint that processes AI queries with database context.
+
+**Request**:
+```json
+{
+  "prompt": "What hospitals are in the database?",
+  "databaseConnectionId": "mock-data-connection",
+  "model": "gpt-3.5-turbo",
+  "temperature": 0.7,
+  "maxTokens": 1000
 }
 ```
 
-### 4. Update AIService to Use Database Context
-
-```java
-package com.lighthouse.demo.service;
-
-import com.lighthouse.demo.model.AIResponse;
-import com.theokanning.openai.OpenAiService;
-import com.theokanning.openai.completion.chat.ChatCompletionRequest;
-import com.theokanning.openai.completion.chat.ChatMessage;
-import com.theokanning.openai.completion.chat.ChatMessageRole;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-
-@Service
-public class AIService {
-    
-    @Autowired
-    private DatabaseService databaseService;
-    
-    @Value("${openai.api.key}")
-    private String openaiApiKey;
-    
-    @Value("${openai.api.model:gpt-3.5-turbo}")
-    private String model;
-    
-    @Value("${openai.api.temperature:0.7}")
-    private double temperature;
-    
-    @Value("${openai.api.max-tokens:1000}")
-    private int maxTokens;
-    
-    public AIResponse callAI(String prompt, String databaseConnectionId) {
-        long startTime = System.currentTimeMillis();
-        
-        try {
-            // Get database context
-            String databaseContext = databaseService.getTargetedContext(prompt);
-            
-            // Build enhanced prompt with database context
-            String enhancedPrompt = buildEnhancedPrompt(prompt, databaseContext);
-            
-            // Initialize OpenAI service
-            OpenAiService service = new OpenAiService(openaiApiKey);
-            
-            // Create chat messages
-            List<ChatMessage> messages = new ArrayList<>();
-            messages.add(new ChatMessage(ChatMessageRole.USER.value(), enhancedPrompt));
-            
-            // Create completion request
-            ChatCompletionRequest completionRequest = ChatCompletionRequest.builder()
-                    .model(model)
-                    .messages(messages)
-                    .temperature(temperature)
-                    .maxTokens(maxTokens)
-                    .build();
-            
-            // Call OpenAI API
-            String response = service.createChatCompletion(completionRequest)
-                    .getChoices()
-                    .get(0)
-                    .getMessage()
-                    .getContent();
-            
-            long latencyMs = System.currentTimeMillis() - startTime;
-            
-            // Estimate tokens (rough calculation)
-            int tokensUsed = estimateTokens(enhancedPrompt, response);
-            
-            // Calculate cost
-            double costUsd = calculateCost(enhancedPrompt.length(), response.length());
-            
-            return new AIResponse(response, tokensUsed, costUsd, latencyMs, "openai");
-            
-        } catch (Exception e) {
-            long latencyMs = System.currentTimeMillis() - startTime;
-            String errorResponse = "Error calling AI API: " + e.getMessage();
-            return new AIResponse(errorResponse, 0, 0.0, latencyMs, "openai");
-        }
-    }
-    
-    private String buildEnhancedPrompt(String userPrompt, String databaseContext) {
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("You have access to a database with the following context:\n\n");
-        prompt.append(databaseContext);
-        prompt.append("\n\n");
-        prompt.append("User Question: ").append(userPrompt);
-        prompt.append("\n\n");
-        prompt.append("Please answer the user's question based on the database context provided above. ");
-        prompt.append("If the information is not available in the database context, please say so clearly.");
-        
-        return prompt.toString();
-    }
-    
-    private int estimateTokens(String prompt, String response) {
-        return (int) Math.ceil((prompt.length() + response.length()) / 4.0);
-    }
-    
-    private double calculateCost(int promptLength, int responseLength) {
-        double inputTokens = promptLength / 4.0 / 1000.0;
-        double outputTokens = responseLength / 4.0 / 1000.0;
-        return (inputTokens * 0.0015) + (outputTokens * 0.002);
-    }
+**Response**:
+```json
+{
+  "response": "AI response text...",
+  "success": true,
+  "tokensUsed": 127,
+  "costUsd": 0.0,
+  "latencyMs": 852,
+  "provider": "gemini",
+  "confidenceScore": 95.5,
+  "hallucinationsDetected": false,
+  "supportedClaims": 5,
+  "totalClaims": 5,
+  "databaseContext": "Data from table 'mock_data'...",
+  "traceId": "trace-123"
 }
 ```
 
-### 5. Update DemoBackendController
+#### GET `/api/demo/health`
 
-```java
-package com.lighthouse.demo.controller;
+Health check endpoint.
 
-import com.lighthouse.demo.model.AIResponse;
-import com.lighthouse.demo.service.AIService;
-import com.lighthouse.demo.service.LighthouseService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
-
-@RestController
-@RequestMapping("/api/demo")
-@CrossOrigin(origins = "*")
-public class DemoBackendController {
-    
-    @Autowired
-    private AIService aiService;
-    
-    @Autowired
-    private LighthouseService lighthouseService;
-    
-    @PostMapping("/query")
-    public ResponseEntity<Map<String, Object>> executeQuery(@RequestBody Map<String, String> request) {
-        try {
-            String prompt = request.get("prompt");
-            String databaseConnectionId = request.get("databaseConnectionId");
-            
-            if (prompt == null || prompt.trim().isEmpty()) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("error", "Prompt is required", "success", false));
-            }
-            
-            // Call AI API with database context
-            AIResponse aiResponse = aiService.callAI(prompt, databaseConnectionId);
-            
-            // Send trace to main Lighthouse backend (async, non-blocking)
-            lighthouseService.sendTraceToLighthouse(prompt, aiResponse);
-            
-            // Return response to demo frontend
-            Map<String, Object> response = new HashMap<>();
-            response.put("response", aiResponse.getText());
-            response.put("success", true);
-            response.put("tokensUsed", aiResponse.getTokensUsed());
-            response.put("costUsd", aiResponse.getCostUsd());
-            response.put("latencyMs", aiResponse.getLatencyMs());
-            response.put("provider", aiResponse.getProvider());
-            
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", e.getMessage());
-            errorResponse.put("success", false);
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-    
-    @GetMapping("/health")
-    public ResponseEntity<Map<String, String>> health() {
-        return ResponseEntity.ok(Map.of("status", "ok", "service", "demo-backend"));
-    }
+**Response**:
+```json
+{
+  "status": "ok",
+  "service": "demo-backend"
 }
 ```
 
-## Integration with Main Lighthouse Backend
+### Main Lighthouse Backend Endpoints
 
-The demo backend should also call the main Lighthouse backend's `/api/traces/query-with-db` endpoint to get hallucination detection results. Update `LighthouseService`:
+#### POST `/api/traces/query-with-db`
 
-```java
-public void sendTraceToLighthouse(String prompt, AIResponse aiResponse, String databaseConnectionId) {
-    try {
-        // First, send to query-with-db endpoint for hallucination detection
-        Map<String, Object> queryRequest = new HashMap<>();
-        queryRequest.put("prompt", prompt);
-        queryRequest.put("response", aiResponse.getText());
-        queryRequest.put("databaseConnectionId", databaseConnectionId);
-        queryRequest.put("tokensUsed", aiResponse.getTokensUsed());
-        queryRequest.put("costUsd", aiResponse.getCostUsd());
-        queryRequest.put("latencyMs", aiResponse.getLatencyMs());
-        queryRequest.put("provider", aiResponse.getProvider());
-        
-        // Call main Lighthouse backend for hallucination detection
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/api/traces/query-with-db"))
-                .header("Content-Type", "application/json")
-                .header("X-API-Key", lighthouseApiKey)
-                .timeout(Duration.ofSeconds(30))
-                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(queryRequest)))
-                .build();
-        
-        // Get hallucination detection results
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        
-        if (response.statusCode() == 200) {
-            // Parse response to get hallucination detection results
-            Map<String, Object> result = gson.fromJson(response.body(), Map.class);
-            // Include these results in the response to frontend
-        }
-        
-    } catch (Exception e) {
-        System.err.println("Failed to send trace to Lighthouse: " + e.getMessage());
-    }
+Hallucination detection endpoint (called by demo backend).
+
+**Request**:
+```json
+{
+  "prompt": "What hospitals are in the database?",
+  "response": "AI response text...",
+  "databaseConnectionId": "mock-data-connection",
+  "tokensUsed": 127,
+  "costUsd": 0.0,
+  "latencyMs": 852,
+  "provider": "gemini"
 }
 ```
 
-## Testing
+**Response**:
+```json
+{
+  "response": "AI response text...",
+  "confidenceScore": 95.5,
+  "hallucinationsDetected": false,
+  "supportedClaims": 5,
+  "totalClaims": 5,
+  "databaseContext": "Data from table 'mock_data'...",
+  "traceId": "trace-123"
+}
+```
 
-After implementing these changes:
+## ⚙️ Configuration
 
-1. Make sure PostgreSQL is running on port 5432
-2. Make sure the database `mock_data_db` exists and has data
-3. Update the database password in `application.properties`
-4. Restart the demo backend
-5. Test with a query like "What hospitals are in the database?"
+### Environment Variables
 
-The AI should now have access to the database context and be able to answer questions about the data.
+#### Frontend
+No environment variables required (uses Vite proxy).
 
+#### Backend
+Set `GEMINI_API_KEY` environment variable:
+```bash
+export GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Or add to `application.properties`:
+```properties
+gemini.api.key=your_gemini_api_key_here
+```
+
+### Port Configuration
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Frontend (Vite) | 5174 | React development server |
+| Demo Backend | 8081 | Spring Boot application |
+| Main Lighthouse Backend | 8080 | Lighthouse backend service |
+| PostgreSQL | 5432 | Database server |
+
+### Database Configuration
+
+Update `application.properties` with your database credentials:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/mock_data_db
+spring.datasource.username=postgres
+spring.datasource.password=your_actual_password
+```
+
+## 🚀 Running the Application
+
+### Step-by-Step Startup
+
+1. **Start PostgreSQL**
+   ```bash
+   # macOS
+   brew services start postgresql@14
+   
+   # Linux
+   sudo systemctl start postgresql
+   
+   # Verify it's running
+   psql -U postgres -d mock_data_db -c "SELECT 1;"
+   ```
+
+2. **Start Main Lighthouse Backend** (if separate)
+   ```bash
+   # Navigate to main Lighthouse backend directory
+   # Start the service on port 8080
+   ```
+
+3. **Start Demo Backend**
+   ```bash
+   cd demo-backend
+   mvn spring-boot:run
+   # Should start on http://localhost:8081
+   ```
+
+4. **Start Frontend**
+   ```bash
+   npm run dev
+   # Should start on http://localhost:5174
+   ```
+
+5. **Verify All Services**
+   - Frontend: http://localhost:5174
+   - Demo Backend Health: http://localhost:8081/api/demo/health
+   - Main Lighthouse Backend: http://localhost:8080 (if applicable)
+
+### Quick Start Script
+
+Create a `start-all.sh` script:
+
+```bash
+#!/bin/bash
+
+# Start PostgreSQL (if not running)
+brew services start postgresql@14 2>/dev/null || true
+
+# Start demo backend in background
+cd demo-backend
+mvn spring-boot:run &
+BACKEND_PID=$!
+
+# Wait for backend to start
+sleep 10
+
+# Start frontend
+cd ..
+npm run dev
+
+# Cleanup on exit
+trap "kill $BACKEND_PID" EXIT
+```
+
+## 🧪 Testing
+
+### Manual Testing
+
+1. **Test Database Connection**
+   ```bash
+   psql -h localhost -p 5432 -U postgres -d mock_data_db
+   SELECT COUNT(*) FROM mock_data;
+   ```
+
+2. **Test Demo Backend Health**
+   ```bash
+   curl http://localhost:8081/api/demo/health
+   ```
+
+3. **Test Query Endpoint**
+   ```bash
+   curl -X POST http://localhost:8081/api/demo/query \
+     -H "Content-Type: application/json" \
+     -d '{
+       "prompt": "What hospitals are in the database?",
+       "databaseConnectionId": "mock-data-connection"
+     }'
+   ```
+
+4. **Test from Frontend**
+   - Open http://localhost:5174
+   - Enter a query like "What hospitals are in the database?"
+   - Click "Execute AI Query"
+   - Verify response includes database data
+
+### Example Queries
+
+- "What hospitals are in the database?"
+- "Give me 2 names of people in the db"
+- "Where does Alayne live and what's their bank?"
+- "List all employees in the Engineering department"
+- "What countries are represented in the data?"
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### 1. Database Connection Failed
+
+**Error**: `Connection to localhost:5432 refused`
+
+**Solutions**:
+- Verify PostgreSQL is running: `psql -U postgres -d mock_data_db`
+- Check port in `application.properties` (should be 5432, not 5433)
+- Verify database exists: `\l` in psql
+- Check password in `application.properties`
+- Verify user has permissions: `GRANT ALL ON DATABASE mock_data_db TO postgres;`
+
+#### 2. Demo Backend Not Starting
+
+**Error**: Port 8081 already in use
+
+**Solutions**:
+- Find process using port: `lsof -i :8081`
+- Kill process: `kill -9 <PID>`
+- Or change port in `application.properties`: `server.port=8082`
+
+#### 3. Frontend Can't Connect to Backend
+
+**Error**: Network error or CORS issues
+
+**Solutions**:
+- Verify backend is running: `curl http://localhost:8081/api/demo/health`
+- Check Vite proxy configuration in `vite.config.ts`
+- Verify proxy target is `http://localhost:8081`
+- Check browser console for detailed errors
+
+#### 4. AI Not Using Database Context
+
+**Error**: AI responds "I don't have access to database"
+
+**Solutions**:
+- Check backend logs for database connection errors
+- Verify `DatabaseService` is being called
+- Check that `databaseConnectionId` is being passed
+- Verify table exists: `SELECT * FROM mock_data LIMIT 1;`
+- Check backend console for "Database context retrieved" message
+
+#### 5. Hallucination Detection Not Working
+
+**Error**: `confidenceScore` is `N/A`
+
+**Solutions**:
+- Verify main Lighthouse backend is running on port 8080
+- Check `LighthouseService` is calling correct endpoint
+- Verify API key is correct: `lh_83513bd689b44ab9b53b679d689b50a9`
+- Check main Lighthouse backend logs for errors
+- Verify main Lighthouse backend has database access (if needed)
+
+### Debug Mode
+
+Enable detailed logging in `application.properties`:
+
+```properties
+logging.level.com.example.lighthousedummydemo=DEBUG
+logging.level.com.zaxxer.hikari=DEBUG
+logging.level.org.springframework.jdbc=DEBUG
+logging.level.org.springframework.web=DEBUG
+```
+
+### Checking Logs
+
+**Backend Logs**:
+- Check console output when running `mvn spring-boot:run`
+- Look for "Database context retrieved" messages
+- Check for connection errors
+
+**Frontend Logs**:
+- Open browser DevTools (F12)
+- Check Console tab for errors
+- Check Network tab for failed requests
+
+## 📝 Additional Notes
+
+### Development Tips
+
+1. **Hot Reload**: Frontend has HMR enabled - changes reflect immediately
+2. **Backend Restart**: Backend requires restart after `application.properties` changes
+3. **Database Changes**: Restart backend after database schema changes
+4. **API Keys**: Never commit API keys to version control
+
+### Security Considerations
+
+- This is a **demo application** - not production-ready
+- API keys are hardcoded for demo purposes
+- CORS is open (`@CrossOrigin(origins = "*")`)
+- Database credentials are in plain text
+- For production, use environment variables and proper security
+
+### Performance
+
+- Database queries are limited to 20 rows to avoid large prompts
+- Connection pool is configured for 5 max connections
+- AI responses are cached in browser (React state)
+- Consider adding caching layer for production
+
+## 🤝 Contributing
+
+This is a demo project. For production use:
+- Add proper error handling
+- Implement authentication
+- Add rate limiting
+- Use environment variables for secrets
+- Add comprehensive tests
+- Implement proper logging
+- Add monitoring and alerting
+
+## 📄 License
+
+This is a demo project for educational purposes.
+
+---
+
+**Built with**: React, TypeScript, Vite, Spring Boot, PostgreSQL, Gemini AI
