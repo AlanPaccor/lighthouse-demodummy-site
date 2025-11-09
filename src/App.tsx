@@ -560,8 +560,8 @@ function App() {
 
   return (
     <div className="app">
-      <h1>🚀 Lighthouse SDK Demo</h1>
-      <p className="subtitle">Test the Lighthouse SDK integration</p>
+      <h1>🤖 Lighthouse Mock SDK demoApi</h1>
+      <p className="subtitle">AI-Powered Enterprise Solutions | Trained on AI, Built for AI</p>
 
       <div className="card">
         <div className="button-group">
@@ -570,14 +570,15 @@ function App() {
             disabled={loading}
             className="test-button"
           >
-            {loading ? 'Testing...' : 'Test Mock API Call'}
+            {loading ? 'Processing...' : 'Test Enterprise API'}
           </button>
         </div>
 
         <div className="custom-prompt-section">
-          <h3>Query with Database & Hallucination Detection</h3>
+          <h3>Enterprise AI Query Interface</h3>
           <p className="section-description">
-            This section queries the demo backend (port 8081) which uses the database for context and sends traces to the main Lighthouse backend (port 8080) for hallucination detection.
+            Our proprietary AI system is trained exclusively on AI-generated data, ensuring maximum AI-to-AI compatibility. 
+            Leverage our database-powered context engine for enterprise-grade responses with built-in hallucination detection.
           </p>
           
           <div className="database-connection-selector">
@@ -643,7 +644,7 @@ function App() {
             disabled={loading || !demoPrompt.trim() || !selectedConnectionId}
             className="test-button primary"
           >
-            {loading ? 'Querying...' : 'Query with Database'}
+            {loading ? 'AI Processing...' : 'Execute AI Query'}
           </button>
         </div>
 
@@ -752,7 +753,7 @@ function App() {
               </span>
             </div>
             <div style={{ marginBottom: '1rem' }}>
-              <strong>Demo Backend (Port 8081):</strong>{' '}
+              <strong>AI Processing Engine:</strong>{' '}
               <span className={`status-indicator ${demoBackendStatus}`}>
                 {demoBackendStatus === 'checking' && '🔄 Checking...'}
                 {demoBackendStatus === 'online' && '✅ Online'}
@@ -768,15 +769,8 @@ function App() {
             </div>
             {demoBackendStatus === 'offline' && (
               <div className="status-help">
-                <p>⚠️ Make sure your demo backend (Spring Boot) is running on port 8081</p>
-                <p>Expected configuration:</p>
-                <ul>
-                  <li>Port: 8081</li>
-                  <li>Endpoint: /api/demo/query</li>
-                  <li>Gemini API key configured in application.properties</li>
-                  <li>Lighthouse API URL: http://localhost:8080/api/sdk/traces</li>
-                </ul>
-                <p><strong>Database Connection (for demo backend):</strong></p>
+                <p>⚠️ AI Processing Engine is offline. Please ensure our enterprise AI infrastructure is operational.</p>
+                <p><strong>Database Connection:</strong></p>
                 <ul>
                   <li>Host: localhost</li>
                   <li>Port: 5432</li>
@@ -788,25 +782,22 @@ function App() {
             {backendStatus === 'offline' && (
               <div className="status-help">
                 <p>⚠️ Make sure your main Lighthouse backend is running on port 8080</p>
-                <p>The main Lighthouse backend receives traces from the demo backend and handles hallucination detection, storage, and analytics.</p>
-                <p><strong>Note:</strong> The main Lighthouse backend does NOT need the mock_data_db database. The database is only used by the demo backend (port 8081).</p>
+                <p>The main Lighthouse backend receives traces from our AI Processing Engine and handles hallucination detection, storage, and analytics.</p>
+                <p><strong>Note:</strong> The main Lighthouse backend does NOT need the mock_data_db database. The database is only used by our AI Processing Engine.</p>
               </div>
             )}
           </div>
-          <p><strong>Base URL:</strong> {lighthouse.baseUrl || 'http://localhost:5174 (via proxy)'}</p>
-          <p><strong>Demo Backend URL:</strong> {isDevelopment ? 'http://localhost:8081 (via proxy)' : 'http://localhost:8081'}</p>
-          <p><strong>Demo Backend Endpoint:</strong> /api/demo/query</p>
-          <p><strong>Main Lighthouse Backend:</strong> http://localhost:8080</p>
+          <p><strong>Enterprise API Endpoint:</strong> /api/demo/query</p>
           <p><strong>API Key:</strong> lh_83513bd689b44ab9b53b679d689b50a9</p>
           <p className="read-the-docs">
-            <strong>Query Flow:</strong> Frontend → Demo Backend (8081) → Database (mock_data_db on port 5432) → AI API (Gemini) with Database Context → Demo Backend → Main Lighthouse Backend (8080) for Hallucination Detection
+            <strong>Our Proprietary AI Pipeline:</strong> Enterprise Query Interface → AI Processing Engine → Database-Powered Context Layer → AI Model (Trained on AI) → Hallucination Detection & Validation
           </p>
           <p className="read-the-docs">
-            All queries go through the demo backend on port 8081, which connects to the PostgreSQL database (mock_data_db on port 5432) for context and sends traces to the main Lighthouse backend on port 8080 for hallucination detection.
-            The main Lighthouse backend handles hallucination detection, storage, and analytics but does NOT need database access.
+            Our revolutionary AI system leverages database-driven context injection to provide enterprise-grade responses. 
+            All queries are processed through our AI-to-AI optimized pipeline with built-in hallucination detection and validation.
           </p>
           <p className="read-the-docs">
-            Check your Lighthouse dashboard to see the traces!
+            <em>Powered by AI, for AI, with AI. The future of enterprise AI solutions.</em>
           </p>
         </div>
       </div>
